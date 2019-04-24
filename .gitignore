@@ -11,3 +11,5 @@
 .viminfo
 .xbuild/
 .xslate_cache/
+.gitconfig
+.ssh/
