@@ -1,0 +1,13 @@
+.bash_history
+.bash_logout
+.bashrc
+.cache/
+.cpanm/
+.gem/
+.local/
+.mysql_history
+.profile
+.sudo_as_admin_successful
+.viminfo
+.xbuild/
+.xslate_cache/
