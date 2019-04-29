@@ -11,8 +11,8 @@ module Isutar
   class Web < ::Sinatra::Base
     enable :protection
 
-    set :db_user, ENV['ISUTAR_DB_USER'] || 'root'
-    set :db_password, ENV['ISUTAR_DB_PASSWORD'] || ''
+    set :db_user, 'isucon'
+    set :db_password, 'isucon'
     set :dsn, ENV['ISUTAR_DSN'] || 'dbi:mysql:db=isutar'
     set :isuda_origin, ENV['ISUDA_ORIGIN'] || 'http://localhost:5000'
 
