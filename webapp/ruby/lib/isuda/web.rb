@@ -25,7 +25,9 @@ module Isuda
 
     def initialize
       super
-      update_keyword_pattern
+      keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
+      @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
+      @keyword_count = keywords.to_a.size
     end
 
     configure :development do
@@ -108,7 +110,9 @@ module Isuda
 
       def htmlify(content, keywords = nil)
         unless @keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
-          update_keyword_pattern
+          keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
+          @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
+          @keyword_count = keywords.to_a.size
         end
         kw2hash = {}
         hashed_content = content.gsub(@keyword_pattern) {|m|
@@ -124,12 +128,6 @@ module Isuda
           escaped_content.gsub!(hash, anchor)
         end
         escaped_content.gsub(/\n/, "<br />\n")
-      end
-
-      def update_keyword_pattern
-        keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-        @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
-        @keyword_count = keywords.to_a.size
       end
 
       def uri_escape(str)
