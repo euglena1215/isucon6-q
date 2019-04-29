@@ -140,6 +140,18 @@ module Isuda
       def redirect_found(path)
         redirect(path, 302)
       end
+
+      def invalidate_escaped_content(keyword)
+        should_invalidate_entry_ids = db.xquery(%|
+          SELECT id
+          FROM entry
+          WHERE description LIKE "%?%"
+        |, keyword).to_a.map {|v| v[:id] }
+
+        should_invalidate_entry_ids.each do |id|
+          Thread.current["escaped_content:#{id}".to_sym] = nil
+        end
+      end
     end
 
     get '/initialize' do
@@ -239,15 +251,7 @@ module Isuda
         author_id = ?, keyword = ?, description = ?, updated_at = NOW()
       |, *bound)
 
-      should_invalidate_entry_ids = db.xquery(%|
-        SELECT id
-        FROM entry
-        WHERE description LIKE "%?%"
-      |, keyword).to_a.map {|v| v[:id] }
-
-      should_invalidate_entry_ids.each do |id|
-        Thread.current["escaped_content:#{id}".to_sym] = nil
-      end
+      invalidate_escaped_content(keyword)
 
       redirect_found '/'
     end
@@ -273,15 +277,7 @@ module Isuda
         halt(404)
       end
 
-      should_invalidate_entry_ids = db.xquery(%|
-        SELECT id
-        FROM entry
-        WHERE description LIKE "%?%"
-      |, keyword).to_a.map {|v| v[:id] }
-
-      should_invalidate_entry_ids.each do |id|
-        Thread.current["escaped_content:#{id}".to_sym] = nil
-      end
+      invalidate_escaped_content(keyword)
 
       db.xquery(%| DELETE FROM entry WHERE keyword = ? |, keyword)
 
