@@ -89,7 +89,7 @@ module Isuda
         ! validation['valid']
       end
 
-      def htmlify(content, keywords)
+      def htmlify(content, keywords = nil)
         keywords ||= db.xquery(%| select * from entry order by character_length(keyword) desc |)
         pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
         kw2hash = {}
