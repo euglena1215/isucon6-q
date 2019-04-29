@@ -124,9 +124,6 @@ module Isuda
         keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
         Thread.current[:keyword_pattern] = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
         Thread.current[:keyword_count] = keywords.to_a.size
-
-        puts Thread.current[:keyword_pattern]
-        puts Thread.current[:keyword_count]
       end
 
       def uri_escape(str)
