@@ -48,21 +48,6 @@ module Isuda
     end
 
     helpers do
-      def isutar_db
-        Thread.current[:isutar_db] ||=
-          begin
-            mysql = Mysql2::Client.new(
-              username: settings.db_user,
-              password: settings.db_password,
-              database: 'isutar',
-              encoding: 'utf8mb4',
-              init_command: %|SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'|,
-            )
-            mysql.query_options.update(symbolize_keys: true)
-            mysql
-          end
-      end
-
       def db
         Thread.current[:db] ||=
           begin
@@ -133,10 +118,6 @@ module Isuda
         Rack::Utils.escape_path(str)
       end
 
-      def load_stars(keyword)
-        isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
-      end
-
       def redirect_found(path)
         redirect(path, 302)
       end
@@ -156,7 +137,7 @@ module Isuda
 
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
-      isutar_db.xquery(%| TRUNCATE star|)
+      db.xquery(%| TRUNCATE star|)
 
       update_keyword_pattern
 
@@ -174,12 +155,23 @@ module Isuda
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
+
+      stars = db.xquery(%|
+        select
+          keyword, GROUP_CONCAT(user_name) AS user_names
+        from star
+        where
+          keyword IN (?)
+        group by keyword
+      |, [entries.map { |entry| entry[:keyword] }.uniq]
+      ).to_a.map {|val| [val[:keyword], val[:user_names]]}.to_h
+
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], entry[:id])
-        entry[:stars] = load_stars(entry[:keyword])
+        entry[:stars] = (stars[entry[:keyword]] || "").split(',').map {|v| {user_name: v}}
       end
 
-      total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
+      total_entries = db.xquery(%| SELECT count(1) AS total_entries FROM entry |).first[:total_entries].to_i
 
       last_page = (total_entries.to_f / per_page.to_f).ceil
       from = [1, page - 5].max
@@ -260,7 +252,7 @@ module Isuda
       keyword = params[:keyword] or halt(400)
 
       entry = db.xquery(%| select * from entry where keyword = ? |, keyword).first or halt(404)
-      entry[:stars] = load_stars(entry[:keyword])
+      entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       entry[:html] = htmlify(entry[:description], entry[:id])
 
       locals = {
@@ -286,7 +278,7 @@ module Isuda
 
     get '/stars' do
       keyword = params[:keyword] || ''
-      stars = isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
+      stars = db.xquery(%| select * from star where keyword = ? |, keyword).to_a
 
       content_type :json
       JSON.generate(stars: stars)
@@ -297,7 +289,7 @@ module Isuda
       db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
 
       user_name = params[:user]
-      isutar_db.xquery(%|
+      db.xquery(%|
         INSERT INTO star (keyword, user_name, created_at)
         VALUES (?, ?, NOW())
       |, keyword, user_name)
