@@ -132,6 +132,20 @@ module Isuda
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
+
+      puts entries
+      puts db.xquery(%|
+        SELECT
+          entry.description AS description,
+          entry.keyword AS keyword,
+          star.user_name AS star_user_name
+        FROM entry
+        OUTER JOIN star ON star.keyword = entry.keyword
+        ORDER BY updated_at DESC
+        LIMIT #{per_page}
+        OFFSET #{per_page * (page - 1)}
+      |).group_by {|entry| entry[:keyword] }
+
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
