@@ -107,9 +107,8 @@ module Isuda
         end
         kw2hash = {}
         hashed_content = content.gsub(Thread.current[:keyword_pattern]) {|m|
-          matched_keyword = $1
-          "isuda_#{Digest::SHA1.hexdigest(matched_keyword)}".tap do |hash|
-            kw2hash[matched_keyword] = hash
+          "isuda_#{Digest::SHA1.hexdigest(m.to_s)}".tap do |hash|
+            kw2hash[m.to_s] = hash
           end
         }
         escaped_content = Rack::Utils.escape_html(hashed_content)
