@@ -101,14 +101,14 @@ module Isuda
         ! validation['valid']
       end
 
-      def htmlify(content, keywords = nil)
-        keywords ||= db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-        pattern = keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')
+      def htmlify(content)
+        unless Thread.current[:keyword_count] == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
+          update_keyword_pattern
+        end
         kw2hash = {}
-        hashed_content = content.gsub(/(#{pattern})/) {|m|
-          matched_keyword = $1
-          "isuda_#{Digest::SHA1.hexdigest(matched_keyword)}".tap do |hash|
-            kw2hash[matched_keyword] = hash
+        hashed_content = content.gsub(Thread.current[:keyword_pattern]) {|m|
+          "isuda_#{Digest::SHA1.hexdigest(m.to_s)}".tap do |hash|
+            kw2hash[m.to_s] = hash
           end
         }
         escaped_content = Rack::Utils.escape_html(hashed_content)
@@ -118,6 +118,12 @@ module Isuda
           escaped_content.gsub!(hash, anchor)
         end
         escaped_content.gsub(/\n/, "<br />\n")
+      end
+
+      def update_keyword_pattern
+        keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
+        Thread.current[:keyword_pattern] = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
+        Thread.current[:keyword_count] = keywords.to_a.size
       end
 
       def uri_escape(str)
@@ -137,6 +143,8 @@ module Isuda
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
       isutar_db.xquery(%| TRUNCATE star|)
 
+      update_keyword_pattern
+
       content_type :json
       JSON.generate(result: 'ok')
     end
@@ -151,9 +159,8 @@ module Isuda
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
       |)
-      keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
-        entry[:html] = htmlify(entry[:description], keywords)
+        entry[:html] = htmlify(entry[:description])
         entry[:stars] = load_stars(entry[:keyword])
       end
 
