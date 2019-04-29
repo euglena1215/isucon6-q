@@ -146,7 +146,7 @@ module Isuda
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
-        entry[:stars] = stars[entry[:keyword]].split(',').map {|v| {user_name: v}}
+        entry[:stars] = (stars[entry[:keyword]] || "").split(',').map {|v| {user_name: v}}
       end
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
