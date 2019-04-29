@@ -164,9 +164,6 @@ module Isuda
       to = [last_page, page + 5].min
       pages = [*from..to]
 
-      puts entries.map {|entry| entry[:stars] }
-      puts entries.map {|entry| load_stars(entry[:keyword]) }
-
       locals = {
         entries: entries,
         page: page,
