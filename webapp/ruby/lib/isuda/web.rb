@@ -251,7 +251,7 @@ module Isuda
       keyword = params[:keyword] or halt(400)
       is_delete = params[:delete] or halt(400)
 
-      unless db.xquery(%| SELECT * FROM entry WHERE keyword = ? |, keyword).first
+      unless db.xquery(%| SELECT keyword FROM entry WHERE keyword = ? |, keyword).first
         halt(404)
       end
 
@@ -270,7 +270,7 @@ module Isuda
 
     post '/stars' do
       keyword = params[:keyword]
-      # db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
+      db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
 
       user_name = params[:user]
       isutar_db.xquery(%|
