@@ -124,10 +124,6 @@ module Isuda
         Rack::Utils.escape_path(str)
       end
 
-      def load_stars(keyword)
-        isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
-      end
-
       def redirect_found(path)
         redirect(path, 302)
       end
@@ -154,7 +150,7 @@ module Isuda
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
-        entry[:stars] = load_stars(entry[:keyword])
+        entry[:stars] = isutar_db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       end
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
@@ -236,7 +232,7 @@ module Isuda
       keyword = params[:keyword] or halt(400)
 
       entry = db.xquery(%| select * from entry where keyword = ? |, keyword).first or halt(404)
-      entry[:stars] = load_stars(entry[:keyword])
+      entry[:stars] = isutar_db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       entry[:html] = htmlify(entry[:description])
 
       locals = {
