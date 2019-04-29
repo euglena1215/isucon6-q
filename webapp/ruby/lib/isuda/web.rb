@@ -133,18 +133,19 @@ module Isuda
         OFFSET #{per_page * (page - 1)}
       |)
 
-      puts entries
+      # puts entries.to_a
       puts db.xquery(%|
         SELECT
           entry.description AS description,
           entry.keyword AS keyword,
-          star.user_name AS star_user_name
+          GROUP_CONCAT(star.user_name) AS star_user_names
         FROM entry
         LEFT OUTER JOIN star ON star.keyword = entry.keyword
         ORDER BY updated_at DESC
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
-      |).group_by {|entry| entry[:keyword] }
+        GROUP BY keyword
+      |).to_a.first
 
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
