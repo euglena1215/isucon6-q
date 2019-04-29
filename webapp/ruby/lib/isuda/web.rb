@@ -133,25 +133,13 @@ module Isuda
         OFFSET #{per_page * (page - 1)}
       |)
 
-      # puts entries.to_a
-      puts db.xquery(%|
-        SELECT
-          entry.description AS description,
-          entry.keyword AS keyword,
-          GROUP_CONCAT(star.user_name) AS star_user_names
-        FROM entry
-        LEFT OUTER JOIN star ON star.keyword = entry.keyword
-        ORDER BY updated_at DESC
-        LIMIT #{per_page}
-        OFFSET #{per_page * (page - 1)}
-        GROUP BY keyword
-      |).to_a.first
-
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
         entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       end
+
+      puts db.xquery(%| select user_name from star where keyword IN (?) |, [entries.map { |entry| entry[:keyword] }.uniq]).to_a
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
 
