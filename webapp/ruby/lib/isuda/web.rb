@@ -140,7 +140,7 @@ module Isuda
           entry.keyword AS keyword,
           star.user_name AS star_user_name
         FROM entry
-        OUTER JOIN star ON star.keyword = entry.keyword
+        LEFT OUTER JOIN star ON star.keyword = entry.keyword
         ORDER BY updated_at DESC
         LIMIT #{per_page}
         OFFSET #{per_page * (page - 1)}
