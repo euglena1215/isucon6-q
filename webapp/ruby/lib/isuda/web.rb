@@ -155,9 +155,10 @@ module Isuda
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
         entry[:stars] = load_stars(entry[:keyword])
-        puts "Before: #{load_stars(entry[:keyword])}"
+        before_star = load_stars(entry[:keyword])
         sleep 1.0
-        puts "After: #{load_stars(entry[:keyword])}"
+        after_star = load_stars(entry[:keyword])
+        puts "Before: #{before_star}, After: #{after_star}" unless before_star == after_star
       end
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
