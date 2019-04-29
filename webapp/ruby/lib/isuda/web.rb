@@ -147,7 +147,7 @@ module Isuda
           keyword IN (?)
         group by keyword
       |, [entries.map { |entry| entry[:keyword] }.uniq]
-      ).to_a
+      ).to_a.map {|val| [val[:keyword], val[:user_names]]}.to_h
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
 
