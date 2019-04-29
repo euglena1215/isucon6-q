@@ -273,6 +273,16 @@ module Isuda
         halt(404)
       end
 
+      should_invalidate_entry_ids = db.xquery(%|
+        SELECT id
+        FROM entry
+        WHERE description LIKE "%?%"
+      |, keyword).to_a.map {|v| v[:id] }
+
+      should_invalidate_entry_ids.each do |id|
+        Thread.current["escaped_content:#{id}".to_sym] = nil
+      end
+
       db.xquery(%| DELETE FROM entry WHERE keyword = ? |, keyword)
 
       redirect_found '/'
