@@ -86,10 +86,13 @@ module Isuda
         ! validation['valid']
       end
 
-      def htmlify(content)
+      def htmlify(content, id)
+        return Thread.current["escaped_content:#{id}".to_sym] if Thread.current["escaped_content:#{id}".to_sym]
+
         unless Thread.current[:keyword_count] == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
           update_keyword_pattern
         end
+
         kw2hash = {}
         hashed_content = content.gsub(Thread.current[:keyword_pattern]) {|m|
           "isuda_#{Digest::SHA1.hexdigest(m.to_s)}".tap do |hash|
@@ -102,7 +105,7 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        escaped_content.gsub(/\n/, "<br />\n")
+        Thread.current["escaped_content:#{id}".to_sym] ||= escaped_content.gsub(/\n/, "<br />\n")
       end
 
       def update_keyword_pattern
@@ -117,6 +120,18 @@ module Isuda
 
       def redirect_found(path)
         redirect(path, 302)
+      end
+
+      def invalidate_escaped_content(keyword)
+        should_invalidate_entry_ids = db.xquery(%|
+          SELECT id
+          FROM entry
+          WHERE description LIKE "%?%"
+        |, keyword).to_a.map {|v| v[:id] }
+
+        should_invalidate_entry_ids.each do |id|
+          Thread.current["escaped_content:#{id}".to_sym] = nil
+        end
       end
     end
 
@@ -152,7 +167,7 @@ module Isuda
       ).to_a.map {|val| [val[:keyword], val[:user_names]]}.to_h
 
       entries.each do |entry|
-        entry[:html] = htmlify(entry[:description])
+        entry[:html] = htmlify(entry[:description], entry[:id])
         entry[:stars] = (stars[entry[:keyword]] || "").split(',').map {|v| {user_name: v}}
       end
 
@@ -228,6 +243,8 @@ module Isuda
         author_id = ?, keyword = ?, description = ?, updated_at = NOW()
       |, *bound)
 
+      invalidate_escaped_content(keyword)
+
       redirect_found '/'
     end
 
@@ -236,7 +253,7 @@ module Isuda
 
       entry = db.xquery(%| select * from entry where keyword = ? |, keyword).first or halt(404)
       entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
-      entry[:html] = htmlify(entry[:description])
+      entry[:html] = htmlify(entry[:description], entry[:id])
 
       locals = {
         entry: entry,
@@ -251,6 +268,8 @@ module Isuda
       unless db.xquery(%| SELECT keyword FROM entry WHERE keyword = ? |, keyword).first
         halt(404)
       end
+
+      invalidate_escaped_content(keyword)
 
       db.xquery(%| DELETE FROM entry WHERE keyword = ? |, keyword)
 
