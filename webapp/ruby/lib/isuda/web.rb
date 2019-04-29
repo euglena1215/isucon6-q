@@ -139,7 +139,15 @@ module Isuda
         entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       end
 
-      puts db.xquery(%| select user_name from star where keyword IN (?) |, [entries.map { |entry| entry[:keyword] }.uniq]).to_a
+      puts db.xquery(%|
+        select
+          keyword, GROUP_CONCAT(user_name) AS user_names
+        from star
+        where
+          keyword IN (?)
+        group by keyword
+      |, [entries.map { |entry| entry[:keyword] }.uniq]
+      ).to_a
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
 
