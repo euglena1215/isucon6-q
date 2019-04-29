@@ -23,13 +23,6 @@ module Isuda
     set :isupam_origin, ENV['ISUPAM_ORIGIN'] || 'http://localhost:5050'
     set :isutar_origin, ENV['ISUTAR_ORIGIN'] || 'http://localhost:5001'
 
-    def initialize
-      super
-      keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-      @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
-      @keyword_count = keywords.to_a.size
-    end
-
     configure :development do
       require 'sinatra/reloader'
 
@@ -110,9 +103,7 @@ module Isuda
 
       def htmlify(content, keywords = nil)
         unless @keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
-          keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-          @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
-          @keyword_count = keywords.to_a.size
+          update_keyword_pattern
         end
         kw2hash = {}
         hashed_content = content.gsub(@keyword_pattern) {|m|
@@ -128,6 +119,15 @@ module Isuda
           escaped_content.gsub!(hash, anchor)
         end
         escaped_content.gsub(/\n/, "<br />\n")
+      end
+
+      def update_keyword_pattern
+        keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
+        @keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
+        @keyword_count = keywords.to_a.size
+
+        puts @keyword_pattern
+        puts @keyword_count
       end
 
       def uri_escape(str)
@@ -146,6 +146,8 @@ module Isuda
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
       isutar_db.xquery(%| TRUNCATE star|)
+
+      update_keyword_pattern
 
       content_type :json
       JSON.generate(result: 'ok')
