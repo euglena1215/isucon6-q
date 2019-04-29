@@ -19,7 +19,6 @@ module Isuda
     set :public_folder, File.expand_path('../../../../public', __FILE__)
     set :db_user, 'isucon'
     set :db_password, 'isucon'
-    set :dsn, ENV['ISUDA_DSN'] || 'dbi:mysql:db=isuda'
     set :session_secret, 'tonymoris'
     set :isupam_origin, ENV['ISUPAM_ORIGIN'] || 'http://localhost:5050'
     set :isutar_origin, ENV['ISUTAR_ORIGIN'] || 'http://localhost:5001'
@@ -49,15 +48,28 @@ module Isuda
     end
 
     helpers do
-      def db
-        Thread.current[:db] ||=
+      def isutar_db
+        Thread.current[:isutar_db] ||=
           begin
-            _, _, attrs_part = settings.dsn.split(':', 3)
-            attrs = Hash[attrs_part.split(';').map {|part| part.split('=', 2) }]
             mysql = Mysql2::Client.new(
               username: settings.db_user,
               password: settings.db_password,
-              database: attrs['db'],
+              database: 'isutar',
+              encoding: 'utf8mb4',
+              init_command: %|SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'|,
+            )
+            mysql.query_options.update(symbolize_keys: true)
+            mysql
+          end
+      end
+
+      def db
+        Thread.current[:db] ||=
+          begin
+            mysql = Mysql2::Client.new(
+              username: settings.db_user,
+              password: settings.db_password,
+              database: 'isuda',
               encoding: 'utf8mb4',
               init_command: %|SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'|,
             )
@@ -113,7 +125,7 @@ module Isuda
       end
 
       def load_stars(keyword)
-        db.xquery(%| select * from star where keyword = ? |, keyword).to_a
+        isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
       end
 
       def redirect_found(path)
@@ -123,7 +135,7 @@ module Isuda
 
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
-      db.xquery('TRUNCATE star')
+      isutar_db.xquery('TRUNCATE star')
 
       content_type :json
       JSON.generate(result: 'ok')
@@ -248,7 +260,7 @@ module Isuda
 
     get '/stars' do
       keyword = params[:keyword] || ''
-      stars = db.xquery(%| select * from star where keyword = ? |, keyword).to_a
+      stars = isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
 
       content_type :json
       JSON.generate(stars: stars)
@@ -259,7 +271,7 @@ module Isuda
       db.xquery(%| select 1 from entry where keyword = ? |, keyword).first or halt(404)
 
       user_name = params[:user]
-      db.xquery(%|
+      isutar_db.xquery(%|
         INSERT INTO star (keyword, user_name, created_at)
         VALUES (?, ?, NOW())
       |, keyword, user_name)
