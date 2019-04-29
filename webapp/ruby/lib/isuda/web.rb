@@ -156,7 +156,7 @@ module Isuda
         entry[:html] = htmlify(entry[:description], keywords)
         entry[:stars] = load_stars(entry[:keyword])
         before_star = load_stars(entry[:keyword])
-        sleep 1.0
+        sleep 3.0
         after_star = load_stars(entry[:keyword])
         puts "Before: #{before_star}, After: #{after_star}" unless before_star == after_star
       end
