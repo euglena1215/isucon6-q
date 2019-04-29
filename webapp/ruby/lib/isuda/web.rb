@@ -135,7 +135,7 @@ module Isuda
 
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
-      isutar_db.xquery('TRUNCATE star')
+      isutar_db.xquery(%| TRUNCATE star|)
 
       content_type :json
       JSON.generate(result: 'ok')
