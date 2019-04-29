@@ -48,21 +48,6 @@ module Isuda
     end
 
     helpers do
-      def isutar_db
-        Thread.current[:isutar_db] ||=
-          begin
-            mysql = Mysql2::Client.new(
-              username: settings.db_user,
-              password: settings.db_password,
-              database: 'isutar',
-              encoding: 'utf8mb4',
-              init_command: %|SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'|,
-            )
-            mysql.query_options.update(symbolize_keys: true)
-            mysql
-          end
-      end
-
       def db
         Thread.current[:db] ||=
           begin
@@ -131,7 +116,7 @@ module Isuda
 
     get '/initialize' do
       db.xquery(%| DELETE FROM entry WHERE id > 7101 |)
-      isutar_db.xquery(%| TRUNCATE star|)
+      db.xquery(%| TRUNCATE star|)
 
       content_type :json
       JSON.generate(result: 'ok')
@@ -150,7 +135,7 @@ module Isuda
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
-        entry[:stars] = isutar_db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
+        entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       end
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
@@ -232,7 +217,7 @@ module Isuda
       keyword = params[:keyword] or halt(400)
 
       entry = db.xquery(%| select * from entry where keyword = ? |, keyword).first or halt(404)
-      entry[:stars] = isutar_db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
+      entry[:stars] = db.xquery(%| select * from star where keyword = ? |, entry[:keyword]).to_a
       entry[:html] = htmlify(entry[:description])
 
       locals = {
@@ -256,7 +241,7 @@ module Isuda
 
     get '/stars' do
       keyword = params[:keyword] || ''
-      stars = isutar_db.xquery(%| select * from star where keyword = ? |, keyword).to_a
+      stars = db.xquery(%| select * from star where keyword = ? |, keyword).to_a
 
       content_type :json
       JSON.generate(stars: stars)
@@ -267,7 +252,7 @@ module Isuda
       db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
 
       user_name = params[:user]
-      isutar_db.xquery(%|
+      db.xquery(%|
         INSERT INTO star (keyword, user_name, created_at)
         VALUES (?, ?, NOW())
       |, keyword, user_name)
