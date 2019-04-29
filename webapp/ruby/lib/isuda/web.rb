@@ -270,7 +270,7 @@ module Isuda
 
     post '/stars' do
       keyword = params[:keyword]
-      db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
+      # db.xquery(%| select keyword from entry where keyword = ? |, keyword).first or halt(404)
 
       user_name = params[:user]
       isutar_db.xquery(%|
