@@ -157,6 +157,8 @@ module Isuda
         entry[:stars] = load_stars(entry[:keyword])
       end
 
+      sleep 1.0
+
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
 
       last_page = (total_entries.to_f / per_page.to_f).ceil
