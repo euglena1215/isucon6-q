@@ -152,12 +152,11 @@ module Isuda
         OFFSET #{per_page * (page - 1)}
       |)
       keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
+      sleep 3.0
       entries.each do |entry|
         entry[:html] = htmlify(entry[:description], keywords)
         entry[:stars] = load_stars(entry[:keyword])
       end
-
-      sleep 1.0
 
       total_entries = db.xquery(%| SELECT count(*) AS total_entries FROM entry |).first[:total_entries].to_i
 
