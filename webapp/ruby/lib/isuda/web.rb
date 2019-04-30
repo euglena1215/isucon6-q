@@ -56,6 +56,7 @@ module Isuda
             mysql = Mysql2::Client.new(
               username: settings.db_user,
               password: settings.db_password,
+              host: '13.113.40.123',
               database: 'isuda',
               encoding: 'utf8mb4',
               init_command: %|SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'|,
