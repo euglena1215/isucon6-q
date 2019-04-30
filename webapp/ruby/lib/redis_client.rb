@@ -16,27 +16,27 @@ class RedisClient
       "isu:escaped_content:#{id}"
     end
 
-    def keyword_pattern
+    def get_keyword_pattern
       /#{@@redis.get(key_keyword_pattern)}/
     end
 
-    def keyword_pattern=(pattern)
+    def set_keyword_pattern(pattern)
       @@redis.set(key_keyword_pattern.to_s, pattern)
     end
 
-    def keyword_count
+    def get_keyword_count
       @@redis.get(key_keyword_count).to_i
     end
 
-    def keyword_count=(count)
+    def set_keyword_count(count)
       @@redis.set(key_keyword_count, count)
     end
 
-    def escaped_content(id)
+    def get_escaped_content(id)
       @@redis.get(key_escaped_content(id))
     end
 
-    def escaped_content=(content, id)
+    def set_escaped_content(content, id)
       @@redis.set(key_escaped_content(id), content)
     end
   end

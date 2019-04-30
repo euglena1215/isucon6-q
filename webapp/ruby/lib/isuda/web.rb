@@ -89,14 +89,14 @@ module Isuda
       end
 
       def htmlify(content, id)
-        return RedisClient.escaped_content(id) if RedisClient.escaped_content(id)
+        return RedisClient.get_escaped_content(id) if RedisClient.get_escaped_content(id)
 
-        unless RedisClient.keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
+        unless RedisClient.get_keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
           update_keyword_pattern
         end
 
         kw2hash = {}
-        hashed_content = content.gsub(RedisClient.keyword_pattern) {|m|
+        hashed_content = content.gsub(RedisClient.get_keyword_pattern) {|m|
           "isuda_#{Digest::SHA1.hexdigest(m.to_s)}".tap do |hash|
             kw2hash[m.to_s] = hash
           end
@@ -107,15 +107,14 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        if RedisClient.escaped_content(id)
-          RedisClient.escaped_content = escaped_content.gsub(/\n/, "<br />\n"), id
-        end
+
+        RedisClient.set_escaped_content(escaped_content.gsub(/\n/, "<br />\n"), id) unless RedisClient.get_scaped_content(id)
       end
 
       def update_keyword_pattern
         keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-        RedisClient.keyword_pattern = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
-        RedisClient.keyword_count = keywords.to_a.size
+        RedisClient.set_keyword_pattern(/#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/)
+        RedisClient.set_keyword_count(keywords.to_a.size)
       end
 
       def uri_escape(str)
@@ -134,7 +133,7 @@ module Isuda
         |, keyword).to_a.map {|v| v[:id] }
 
         should_invalidate_entry_ids.each do |id|
-          RedisClient.escaped_content = nil, id
+          RedisClient.set_escaped_content(nil, id)
         end
       end
     end
