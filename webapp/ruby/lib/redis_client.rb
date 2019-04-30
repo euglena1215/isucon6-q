@@ -32,8 +32,8 @@ class RedisClient
       @@redis.exists(key_escaped_content(id)) == 1
     end
 
-    def invalidate_escaped_content(id)
-      @@redis.del(key_escaped_content(id))
+    def invalidate_escaped_content(*ids)
+      @@redis.del(key_escaped_content(*ids))
     end
 
     private
