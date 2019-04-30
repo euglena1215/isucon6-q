@@ -2,9 +2,8 @@ require 'redis'
 require 'redis/connection/hiredis'
 
 class RedisClient
+  @@redis = (Thread.current[:isu_redis] ||= Redis.new(host: (ENV["REDIS_HOST"] || "127.0.0.1"), port: 6379))
   class << self
-    @redis = (Thread.current[:isu_redis] ||= Redis.new(host: (ENV["REDIS_HOST"] || "127.0.0.1"), port: 6379))
-
     def key_keyword_pattern
       "isu:keyword_pattern"
     end
@@ -18,19 +17,19 @@ class RedisClient
     end
 
     def keyword_pattern
-      @redis.get(key_keyword_pattern)
+      @@redis.get(key_keyword_pattern)
     end
 
     def keyword_pattern=(pattern)
-      @redis.set(key_keyword_pattern, pattern)
+      @@redis.set(key_keyword_pattern, pattern)
     end
 
     def keyword_count
-      @redis.get(key_keyword_count)
+      @@redis.get(key_keyword_count)
     end
 
     def keyword_count=(count)
-      @redis.set(key_keyword_count, count)
+      @@redis.set(key_keyword_count, count)
     end
   end
 end
