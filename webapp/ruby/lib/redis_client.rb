@@ -33,7 +33,7 @@ class RedisClient
     end
 
     def invalidate_escaped_content(*ids)
-      @@redis.del(key_escaped_content(*ids))
+      @@redis.del(*(ids.map {|id| key_escaped_content(id) }))
     end
 
     private
