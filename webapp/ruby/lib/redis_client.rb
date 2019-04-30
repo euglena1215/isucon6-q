@@ -17,7 +17,7 @@ class RedisClient
     end
 
     def keyword_pattern
-      /#{@@redis.get(key_keyword_pattern)}+/o
+      /#{@@redis.get(key_keyword_pattern)}/
     end
 
     def keyword_pattern=(pattern)
