@@ -108,7 +108,7 @@ module Isuda
           escaped_content.gsub!(hash, anchor)
         end
 
-        RedisClient.set_escaped_content(escaped_content.gsub(/\n/, "<br />\n"), id) unless RedisClient.get_scaped_content(id)
+        RedisClient.set_escaped_content(escaped_content.gsub(/\n/, "<br />\n"), id) unless RedisClient.get_escaped_content(id)
       end
 
       def update_keyword_pattern
