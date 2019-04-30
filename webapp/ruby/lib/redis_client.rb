@@ -17,15 +17,15 @@ class RedisClient
     end
 
     def keyword_pattern
-      @@redis.get(key_keyword_pattern)
+      /#{@@redis.get(key_keyword_pattern)}+/o
     end
 
     def keyword_pattern=(pattern)
-      @@redis.set(key_keyword_pattern, pattern)
+      @@redis.set(key_keyword_pattern.to_s, pattern)
     end
 
     def keyword_count
-      @@redis.get(key_keyword_count)
+      @@redis.get(key_keyword_count).to_i
     end
 
     def keyword_count=(count)
