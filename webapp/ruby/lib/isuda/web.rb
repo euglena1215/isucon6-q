@@ -89,14 +89,14 @@ module Isuda
       end
 
       def htmlify(content, id)
-        return Thread.current["escaped_content:#{id}".to_sym] if Thread.current["escaped_content:#{id}".to_sym]
+        return RedisClient.get_escaped_content(id) if RedisClient.exists_escaped_content?(id)
 
-        unless Thread.current[:keyword_count] == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
+        unless RedisClient.get_keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
           update_keyword_pattern
         end
 
         kw2hash = {}
-        hashed_content = content.gsub(Thread.current[:keyword_pattern]) {|m|
+        hashed_content = content.gsub(RedisClient.get_keyword_pattern) {|m|
           "isuda_#{Digest::SHA1.hexdigest(m.to_s)}".tap do |hash|
             kw2hash[m.to_s] = hash
           end
@@ -107,13 +107,16 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        Thread.current["escaped_content:#{id}".to_sym] ||= escaped_content.gsub(/\n/, "<br />\n")
+
+        escaped_content.gsub(/\n/, "<br />\n").tap do |content|
+          RedisClient.set_escaped_content(content, id) unless RedisClient.exists_escaped_content?(id)
+        end
       end
 
       def update_keyword_pattern
         keywords = db.xquery(%| select keyword from entry order by character_length(keyword) desc |)
-        Thread.current[:keyword_pattern] = /#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/
-        Thread.current[:keyword_count] = keywords.to_a.size
+        RedisClient.set_keyword_pattern(/#{keywords.map {|k| Regexp.escape(k[:keyword]) }.join('|')}/)
+        RedisClient.set_keyword_count(keywords.to_a.size)
       end
 
       def uri_escape(str)
@@ -131,9 +134,8 @@ module Isuda
           WHERE description LIKE "%?%"
         |, keyword).to_a.map {|v| v[:id] }
 
-        should_invalidate_entry_ids.each do |id|
-          Thread.current["escaped_content:#{id}".to_sym] = nil
-        end
+        return if should_invalidate_entry_ids.empty?
+        RedisClient.invalidate_escaped_content(*should_invalidate_entry_ids)
       end
     end
 
