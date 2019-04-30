@@ -10,7 +10,7 @@ require 'rack/utils'
 require 'sinatra/base'
 require 'tilt/erubis'
 
-require '../redis_client.rb'
+require '/home/isucon/webapp/ruby/lib/redis_client.rb'
 
 module Isuda
   class Web < ::Sinatra::Base

@@ -13,3 +13,4 @@
 .xslate_cache/
 .gitconfig
 .ssh/
+.bundle/cache/
