@@ -31,5 +31,13 @@ class RedisClient
     def keyword_count=(count)
       @@redis.set(key_keyword_count, count)
     end
+
+    def escaped_content(id)
+      @@redis.get(key_escaped_content(id))
+    end
+
+    def escaped_content=(content, id)
+      @@redis.set(key_escaped_content(id), content)
+    end
   end
 end

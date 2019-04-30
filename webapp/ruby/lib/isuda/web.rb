@@ -89,7 +89,7 @@ module Isuda
       end
 
       def htmlify(content, id)
-        return Thread.current["escaped_content:#{id}".to_sym] if Thread.current["escaped_content:#{id}".to_sym]
+        return RedisClient.escaped_content(id) if RedisClient.escaped_content(id)
 
         unless RedisClient.keyword_count == db.xquery(%| select COUNT(1) AS count from entry |).first[:count]
           update_keyword_pattern
@@ -107,7 +107,9 @@ module Isuda
           anchor = '<a href="%s">%s</a>' % [keyword_url, Rack::Utils.escape_html(keyword)]
           escaped_content.gsub!(hash, anchor)
         end
-        Thread.current["escaped_content:#{id}".to_sym] ||= escaped_content.gsub(/\n/, "<br />\n")
+        if RedisClient.escaped_content(id)
+          RedisClient.escaped_content = escaped_content.gsub(/\n/, "<br />\n"), id
+        end
       end
 
       def update_keyword_pattern
@@ -132,7 +134,7 @@ module Isuda
         |, keyword).to_a.map {|v| v[:id] }
 
         should_invalidate_entry_ids.each do |id|
-          Thread.current["escaped_content:#{id}".to_sym] = nil
+          RedisClient.escaped_content = nil, id
         end
       end
     end
