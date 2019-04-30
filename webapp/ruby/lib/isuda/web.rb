@@ -134,6 +134,7 @@ module Isuda
           WHERE description LIKE "%?%"
         |, keyword).to_a.map {|v| v[:id] }
 
+        return if should_invalidate_entry_ids.empty?
         RedisClient.invalidate_escaped_content(*should_invalidate_entry_ids)
       end
     end
