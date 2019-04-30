@@ -28,6 +28,14 @@ class RedisClient
       @@redis.set(key_escaped_content(id), content)
     end
 
+    def exists_escaped_content?(id)
+      @@redis.exists(key_escaped_content(id)) == 1
+    end
+
+    def invalidate_escaped_content(id)
+      @@redis.del(key_escaped_content(id))
+    end
+
     private
 
     def key_keyword_pattern
